@@ -7,6 +7,7 @@ import ProgressSteps from '../components/ProgressSteps'
 import DateSelector from '../components/DateSelector'
 import TimeSlotSelector from '../components/TimeSlotSelector'
 import TimezoneSelector from '../components/TimezoneSelector'
+import CustomDropdown from '../components/CustomDropdown'
 
 const GRADES = [
   'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
@@ -19,6 +20,16 @@ const SUBJECTS = [
   { value: 'Mathematics', label: 'Mathematics' },
   { value: 'Science', label: 'Science' },
   { value: 'Coding', label: 'Coding' },
+]
+
+const gradeOptions = [
+  { value: '', label: 'Select grade' },
+  ...GRADES.map(g => ({ value: g, label: g }))
+]
+
+const subjectOptions = [
+  { value: '', label: 'Select subject' },
+  ...SUBJECTS
 ]
 
 function Booking() {
@@ -210,33 +221,21 @@ function Booking() {
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="grade">Grade</label>
-                <select
-                  id="grade"
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                >
-                  <option value="">Select grade</option>
-                  {GRADES.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
+              <CustomDropdown
+                id="grade"
+                label="Grade"
+                options={gradeOptions}
+                value={grade}
+                onChange={setGrade}
+              />
 
-              <div className="form-group">
-                <label htmlFor="subject">Subject</label>
-                <select
-                  id="subject"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                >
-                  <option value="">Select subject</option>
-                  {SUBJECTS.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
-              </div>
+              <CustomDropdown
+                id="subject"
+                label="Subject"
+                options={subjectOptions}
+                value={subject}
+                onChange={setSubject}
+              />
 
               <button type="submit" className="btn-primary btn-large">
                 Continue to Schedule

@@ -19,56 +19,46 @@ A full-stack trial-class appointment booking system built for the CodeYoung Full
 | 11 | Frontend: React | React + Vite |
 | 12 | README.md and TRANSCRIPT.md included | Implemented |
 
-## Features Implemented
-- **Parent Registration & OTP Verification** — 6-digit email OTP with 5-minute expiry, SHA-256 hashed storage
-- **Login with OTP** — Existing parents can log in via email OTP
-- **Trial Class Booking Flow** — 2-step: child details (name, grade, subject) → schedule (date, time zone, time slot)
-- **Subject-Based Mentor Matching** — English, Mathematics, Science, Coding
-- **Time Zone & DST Handling** — Luxon IANA time zones; parent and mentor local times shown side-by-side
-- **Mentor Capacity Rule** — Max 2 confirmed classes per mentor per **mentor's local calendar day**
-- **Availability Checking** — Optimized single-query per request (batched `$or` across mentors)
-- **Conflict Detection** — Overlap prevention between existing bookings and candidate slots
-- **Re-check at Booking** — Availability re-verified during `createBooking`; 409 with next available slot if race condition
-- **Email Notifications** — Nodemailer + Gmail SMTP; parent confirmation + mentor assignment emails
-- **Parent Dashboard** — View booked classes, profile details, book new class
-- **Booking Confirmation Page** — Class details, mentor info, time comparison, join link, notification status
-- **Toast Notifications** — Success, error, warning, info with auto-dismiss and animations
-- **Success Modal** — Copy link, join class, mentor details
+## Key Features
+- **Parent Registration with OTP** — 6-digit email OTP with 5-minute expiry, SHA-256 hashed storage
+- **Parent Login with OTP** — Existing parents can log in via email OTP
+- **Session-based frontend authentication state** — `sessionStorage` only, no JWT
+- **Child name, Grade selection, Subject selection** — Step 1 of booking flow
+- **Custom readable Grade/Subject dropdowns** — Accessible dropdown components with 18px option text, keyboard navigation (ArrowUp/Down, Enter, Escape), click-outside close, ARIA attributes
+- **Date selection** — Next 7 days, past dates excluded
+- **Time-slot selection** — 30-min intervals, 9 AM–9 PM local
+- **Parent timezone selection** — IANA timezone selector
+- **Timezone conversion & DST-aware calculations** — Luxon IANA time zones throughout
+- **Subject-qualified mentor assignment** — English, Mathematics, Science, Coding
+- **Maximum 2 confirmed demo classes per mentor local calendar day**
+- **Overlap checking** — Prevents double-booking
+- **Booking confirmation** — Class details, mentor info, both local times, join link
+- **Mentor contact information** — Email and phone displayed
+- **Dummy live-class link** — `https://meet.example.com/codeyoung-<timestamp>-<random>`
+- **Email notifications** — Parent confirmation + mentor assignment, logged in Notification collection
+- **Toast notifications** — Success, error, warning, info with animations
+- **Success modal** — Copy link, join class, mentor details
+- **Dashboard / booking history** — View booked classes, profile, book new class
 - **Responsive UI** — Desktop two-column layout; mobile stacked
 
-## User Booking Flow
-1. **Registration** — Parent enters name, email, phone, subject, timezone → OTP sent → verify OTP → account created
+## User Flow
+1. **Registration** — Parent enters name, email, phone, subject, timezone → OTP sent → verify OTP → account created with `emailVerified: true`
 2. **Login** — Existing parent enters email → OTP sent → verify → dashboard
-3. **Booking Step 1** — Enter child name, select grade (1–12), select subject
+3. **Booking Step 1** — Enter child name, select grade (1–12), select subject (custom dropdowns)
 4. **Booking Step 2** — Select timezone → select date (next 7 days) → view available 30-min slots (9 AM–9 PM) → select slot
 5. **Confirm** — System re-checks mentor availability → creates booking → assigns mentor → generates dummy meet link
-6. **Confirmation** — Page shows class details, mentor, both local times, join link; emails sent to parent & mentor
+6. **Confirmation** — Page shows class details, mentor, both local times (converted from `startTimeUTC`), join link; emails sent to parent & mentor
 
-## Technology Stack
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 18, Vite 5, React Router 6, Axios, Luxon 3 |
-| Backend | Node.js, Express 5, Mongoose 9, Luxon 3, Nodemailer 10 |
-| Database | MongoDB Atlas (Mongoose ODM) |
-| Auth | Session-based (sessionStorage), OTP via email |
-| Email | Nodemailer with Gmail SMTP |
-| Styling | Pure CSS (CSS variables, no external UI library) |
+## Architecture
+**Frontend:** React 18 + Vite 5, React Router 6, Axios, Luxon 3
+**Backend:** Node.js + Express 5, Mongoose 9, Luxon 3, Nodemailer 10
+**Database:** MongoDB Atlas + Mongoose ODM
+**Timezone:** Luxon 3 (IANA time zones, DST-aware)
+**Email:** Nodemailer + Gmail SMTP
 
-## System Architecture
-```
-┌─────────────┐     REST API      ┌─────────────┐     Mongoose      ┌───────────┐
-│   React     │ ─────────────────▶ │  Express    │ ─────────────────▶ │  MongoDB  │
-│   (Vite)    │ ◀───────────────── │  (Node.js)  │ ◀───────────────── │  Atlas    │
-└─────────────┘                    └─────────────┘                    └───────────┘
-        │                                 │
-        │                                 ├── /api/auth (register, login, verify-otp)
-        │                                 ├── /api/slots (GET availability)
-        │                                 └── /api/bookings (POST create)
-        │
-        ├── AuthContext (sessionStorage)
-        ├── ToastContext (notifications)
-        └── ProtectedRoute (dashboard, booking, confirmation)
-```
+**Data Flow:** React UI → REST API → Express services → MongoDB
+**Booking/Mentor Assignment Flow:**
+`createBooking` → `assignMentor` → `getAvailableMentorsForSlot` → filters active mentors by subject → checks mentor's local day capacity (max 2) and overlap → assigns first available → booking created with `startTimeUTC` as canonical UTC instant
 
 ## Project Structure
 ```
@@ -96,7 +86,8 @@ codeyoung-trial-booking/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/            # Header, DateSelector, TimeSlotSelector, TimezoneSelector,
-│   │   │                           ProgressSteps, Toast, ToastContainer, BookingSuccessModal
+│   │   │                           ProgressSteps, Toast, ToastContainer, BookingSuccessModal,
+│   │   │                           CustomDropdown
 │   │   ├── context/               # AuthContext, ToastContext
 │   │   ├── pages/                 # Register, VerifyOTP, Login, LoginVerifyOTP,
 │   │   │                           Dashboard, Booking, BookingConfirmation
@@ -107,10 +98,11 @@ codeyoung-trial-booking/
 │   │   └── index.css              # Design system (CSS variables)
 │   ├── package.json
 │   └── .env                       # Excluded from Git
-└── README.md
+├── README.md
+└── TRANSCRIPT.md
 ```
 
-## Database Models
+## Data Models
 ### Parent
 ```javascript
 {
@@ -170,13 +162,14 @@ index: { mentorId: 1, startTimeUTC: 1, endTimeUTC: 1 }
 }
 ```
 
-## Authentication / OTP Flow
-- **No JWT** — uses `sessionStorage` only
+## Authentication
+- **No JWT** — uses `sessionStorage` only (`codeyoung_parent` key)
 - **Registration OTP** — `POST /api/auth/send-otp` → 6-digit code emailed → stored hashed (SHA-256) with 5-min TTL in memory Map → `POST /api/auth/verify-otp` validates → creates Parent document with `emailVerified: true`
 - **Login OTP** — `POST /api/auth/login/send-otp` → finds existing parent → sends OTP → `POST /api/auth/login/verify-otp` validates → returns parent data
-- **Session** — Parent object stored in `sessionStorage` under `codeyoung_parent`; `AuthContext` restores on app load
+- **Session** — Parent object stored in `sessionStorage`; `AuthContext` restores on app load
+- **OTP Store** — In-memory `Map` (resets on server restart), keys hashed with SHA-256, 5-minute TTL
 
-## Mentor Assignment Logic
+## Mentor Assignment
 1. `createBooking` → `assignMentor(startUTC, endUTC, subject)`
 2. `assignMentor` → `getAvailableMentorsForSlot(startUTC, endUTC, subject)`
 3. `getAvailableMentorsForSlot`:
@@ -187,7 +180,9 @@ index: { mentorId: 1, startTimeUTC: 1, endTimeUTC: 1 }
    - Return first available mentor (array order)
 4. Booking created with assigned mentor; dummy link: `https://meet.example.com/codeyoung-<timestamp>-<random>`
 
-## Timezone and DST Handling
+**Concurrency Note:** The system re-checks availability inside `createBooking` (race-condition guard). If the selected slot becomes unavailable between selection and confirmation, it returns 409 with `nextAvailableSlot` suggestion. This is an application-level re-check; no database transactions or distributed locks are used.
+
+## Timezone and DST
 - **Luxon 3** used throughout (backend + frontend)
 - All timestamps stored as **UTC** in MongoDB (`startTimeUTC`, `endTimeUTC`)
 - Parent selects IANA timezone at registration (also editable on booking step 2)
@@ -195,18 +190,7 @@ index: { mentorId: 1, startTimeUTC: 1, endTimeUTC: 1 }
 - Local day boundaries calculated per-mentor using `DateTime.setZone(mentor.timezone).startOf('day')` / `.endOf('day')` → converted to UTC for query
 - Display: `DateTime.fromISO(utcString).setZone(userTimezone).toFormat(...)`
 - DST transitions handled automatically by Luxon's IANA zone database
-
-## Mentor 2-Classes-Per-Day Capacity Rule
-- **Per mentor, per mentor's local calendar day** (not parent's day, not UTC day)
-- Checked in two places:
-  - **Availability API** (`getAvailableSlots`): batches all mentor day queries in single `$or`
-  - **Booking Creation** (`getAvailableMentorsForSlot`): re-checks per mentor before assignment
-- Counts only `status: 'confirmed'` bookings
-
-## Booking Conflict Handling
-- **Overlap detection**: `existingStart < candidateEnd && existingEnd > candidateStart`
-- Applied during availability check (per slot) and during booking creation (race-condition guard)
-- If slot becomes unavailable between selection and confirmation: returns 409 with `nextAvailableSlot` suggestion
+- **Booking Confirmation fix (commit b4ba8c6):** Page now uses `booking.startTimeUTC` as the single source of truth. A helper `formatBookingTime(utcISO, timezone)` explicitly converts that UTC instant to `parentTimezone` and `mentorTimezone` using `DateTime.fromISO(utcISO, { zone: 'utc' }).setZone(timezone)`. No reliance on browser/system timezone.
 
 ## Email Notifications
 - **Nodemailer** with Gmail SMTP (`smtp.gmail.com:587`, STARTTLS)
@@ -231,26 +215,6 @@ index: { mentorId: 1, startTimeUTC: 1, endTimeUTC: 1 }
 
 **Booking Request Body:** `parentId`, `childName`, `grade`, `subject`, `date`, `time` (HH:mm), `parentTimezone`
 
-## Local Setup Instructions
-```bash
-# Clone
-git clone <repo-url>
-cd codeyoung-trial-booking
-
-# Backend
-cd backend
-cp .env.example .env   # Fill in values (see below)
-npm install
-npm run seed:mentors   # Seeds 10 mentors
-npm run dev            # Starts on port 5000
-
-# Frontend (new terminal)
-cd ../frontend
-cp .env.example .env   # Set VITE_API_URL
-npm install
-npm run dev            # Starts on port 5173
-```
-
 ## Environment Variables
 **Backend (`backend/.env`)** — *excluded from Git*
 ```env
@@ -267,7 +231,46 @@ VITE_API_URL=http://localhost:5000/api
 
 > ⚠️ Real credentials are **not** committed. `.env` files are in `.gitignore`.
 
-## Mentor / Seed Data
+## Prerequisites
+- **Node.js** v18+ (tested with Node.js 20)
+- **npm** v9+ (comes with Node.js)
+- **MongoDB Atlas** account and cluster (or local MongoDB)
+- **Gmail account** with App Password (for SMTP email notifications)
+
+## Installation
+```bash
+# Clone the repository
+git clone <repository-url>
+cd codeyoung-trial-booking
+
+# Backend setup
+cd backend
+npm install
+
+# Seed mentors (run once after first install)
+npm run seed:mentors
+
+# Frontend setup
+cd ../frontend
+npm install
+```
+
+## Running the Application
+**Backend** (starts on `http://localhost:5000`):
+```bash
+cd backend
+npm run dev
+```
+
+**Frontend** (starts on `http://localhost:5173`):
+```bash
+cd frontend
+npm run dev
+```
+
+> **Note:** Both servers must run simultaneously. Open a separate terminal for each.
+
+## Application Flow
 10 mentors seeded via `npm run seed:mentors`:
 | Name | Email | Timezone | Subjects |
 |------|-------|----------|----------|
@@ -304,19 +307,20 @@ All mentors: `active: true`, `maxClassesPerDay: 2`
 - **Index** on `Booking { mentorId: 1, startTimeUTC: 1, endTimeUTC: 1 }`
 - Frontend: `useEffect` dependencies prevent duplicate slot requests
 
-## What Is Implemented
-- Implemented Full registration → OTP → login → booking → confirmation flow
-- Implemented 10 mentors, 4 subjects, 7-day rolling schedule
-- Implemented Timezone-aware local times for parent and mentor
-- Implemented DST-safe Luxon calculations
-- Implemented Mentor capacity (2/day per mentor local day)
-- Implemented Overlap prevention + race-condition re-check
-- Implemented Email notifications (parent + mentor) with logging
-- Implemented Parent dashboard with profile + booked classes
-- Implemented Toast notifications + success modal
-- Implemented Responsive CSS design system
+## Implemented
+- Full registration → OTP → login → booking → confirmation flow
+- 10 mentors, 4 subjects, 7-day rolling schedule
+- Timezone-aware local times for parent and mentor
+- DST-safe Luxon calculations
+- Mentor capacity (2/day per mentor local day)
+- Overlap prevention + race-condition re-check
+- Email notifications (parent + mentor) with logging
+- Parent dashboard with profile + booked classes
+- Toast notifications + success modal
+- Responsive CSS design system
+- Custom accessible dropdowns for Grade/Subject (keyboard, ARIA, readable option text)
 
-## What Is NOT Implemented
+## Not Implemented
 - ❌ JWT or persistent server-side sessions
 - ❌ Real video conferencing integration (dummy links only)
 - ❌ Cancellation / rescheduling flow
@@ -327,16 +331,23 @@ All mentors: `active: true`, `maxClassesPerDay: 2`
 - ❌ Rate limiting, CAPTCHA, or advanced security
 - ❌ Multi-language / i18n
 - ❌ Persistent OTP store (in-memory Map resets on server restart)
+- ❌ Database transactions / distributed locking for race conditions
 
-## Future Improvements
-- Replace in-memory OTP store with Redis (TTL, horizontal scaling)
-- Add JWT refresh/access tokens for stateless auth
-- Implement cancellation & rescheduling with slot release
-- Mentor dashboard (view schedule, manage availability)
-- Admin analytics (bookings, mentor utilization, conversion)
-- WebSocket / Server-Sent Events for real-time slot updates
-- Automated email retry queue (BullMQ + Redis)
-- Comprehensive test suite (Jest + React Testing Library + Supertest)
+## Responsive Design
+- **Layout:** Flexible widths with max-width containers; natural document flow (no forced vertical centering)
+- **Breakpoints:** 900px (tablet) and 480px (mobile) with stacked cards and full-width forms
+- **Scrolling:** Natural vertical scrolling when content exceeds viewport; no horizontal overflow
+- **Components:** Responsive cards, forms, custom dropdowns, progress steps, and modals
+- **Viewport tested:** Common laptop sizes (1366×768, 1536×864, 1280×720) and mobile (375×667, 480×800)
+- **No device-specific hacks:** Uses fluid CSS, flexbox, and media queries based on layout needs
+
+## Design/UX Notes
+Custom EdTech-style interface with CSS variable design system (primary navy, warm coral accent, semantic colors). Responsive breakpoints at 900px and 480px. Booking card with 2-step progress indicator. Readable form controls (labels 1rem, inputs 1.05rem, dropdown options 1.125rem / 18px). Accessible custom dropdowns with ArrowUp/Down, Enter/Space, Escape, Home/End, click-outside close, ARIA combobox/listbox/option pattern, visible focus states.
 
 ## AI-Assisted Development
-Parts of this project were developed with AI assistance (code generation, debugging, refactoring, documentation). All AI-generated code was reviewed, tested, and integrated manually. The final implementation reflects deliberate engineering decisions aligned with the assignment requirements.
+Parts of this project were developed with AI assistance (code generation, debugging, refactoring, documentation). All AI-generated code was reviewed, tested, and integrated manually. The final implementation reflects deliberate engineering decisions aligned with the assignment requirements. TRANSCRIPT.md documents the AI-assisted development process.
+
+## Submission Notes
+- GitHub repository contains `README.md`
+- GitHub repository contains `TRANSCRIPT.md`
+- `TRANSCRIPT.md` documents the available OpenCode AI sessions and clearly identifies redacted/unavailable user prompts rather than fabricating them
