@@ -41,11 +41,12 @@ function BookingConfirmation() {
     setShowModal(false)
   }
 
-  const formatLocalTime = (isoString) => {
+  const formatBookingTime = (utcISO, timezone) => {
     try {
-      return DateTime.fromISO(isoString).toFormat('EEEE, MMMM d, yyyy \'at\' h:mm a')
+      if (!utcISO || !timezone) return 'Invalid time'
+      return DateTime.fromISO(utcISO, { zone: 'utc' }).setZone(timezone).toFormat('EEEE, MMMM d, yyyy \'at\' h:mm a')
     } catch {
-      return isoString
+      return 'Invalid time'
     }
   }
 
@@ -197,7 +198,7 @@ function BookingConfirmation() {
                 <div className="time-column parent-time">
                   <span className="time-column-label">Your Time</span>
                   <span className="time-column-value">
-                    {formatLocalTime(booking.parentLocalStart)}
+                    {formatBookingTime(booking.startTimeUTC, booking.parentTimezone)}
                     <br />
                     <small>{booking.parentTimezone}</small>
                   </span>
@@ -208,7 +209,7 @@ function BookingConfirmation() {
                 <div className="time-column mentor-time">
                   <span className="time-column-label">Mentor's Time</span>
                   <span className="time-column-value">
-                    {formatLocalTime(booking.mentorLocalStart)}
+                    {formatBookingTime(booking.startTimeUTC, booking.mentorTimezone)}
                     <br />
                     <small>{booking.mentorTimezone}</small>
                   </span>
