@@ -18,10 +18,37 @@ A full-stack trial-class appointment booking system. Parents register with email
 - Responsive UI with custom accessible dropdowns
 
 ## Tech Stack
-**Frontend:** React 18 + Vite 5, React Router 6, Axios, Luxon 3
-**Backend:** Node.js + Express 5, Mongoose 9, Luxon 3, Nodemailer 10
-**Database:** MongoDB Atlas + Mongoose ODM
-**Email:** Nodemailer + Gmail SMTP
+
+### Frontend
+
+* **React 18** – Component-based user interface
+* **Vite 5** – Frontend development and build tool
+* **React Router 6** – Client-side routing
+* **Axios** – REST API communication
+* **Luxon 3** – Timezone and date-time handling
+
+### Backend
+
+* **Node.js** – Server-side JavaScript runtime
+* **Express 5** – REST API and backend framework
+* **Mongoose 9** – MongoDB ODM
+* **Luxon 3** – Timezone-aware date and time processing
+* **Nodemailer 10** – Email notifications
+
+### Database
+
+* **MongoDB Atlas** – Cloud database
+* **Mongoose** – Database modeling and data access
+
+### Authentication & Security
+
+* **Email OTP verification** – Registration and login verification
+* **SHA-256 hashing** – OTP protection
+* **Session Storage** – Client-side authenticated session management
+
+### Email & Notifications
+
+* **Nodemailer + Gmail SMTP** – Parent and mentor booking notifications
 
 ## Prerequisites
 - Node.js v18+ (tested with Node.js 20)
